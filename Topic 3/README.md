@@ -1,4 +1,4 @@
-# MMLU Sequential vs Parallel Timing (Local Transformers Inference)
+# Task 1. MMLU Sequential vs Parallel Timing (Local Transformers Inference)
 
 ## Setup
 
@@ -66,3 +66,18 @@ However, both processes still **competed for the same GPU resources**, which lim
 ## Key Takeaway
 
 This experiment demonstrates the difference between **process-level parallelism** and **system-level throughput**. Sequential local inference incurs repeated model startup costs, while parallel execution can significantly reduce wall-clock time when sufficient hardware acceleration is available. Ultimately, performance is bounded by the compute capacity of the underlying hardware and how efficiently model instances are shared or replicated across clients.
+
+## Task 2. OpenAI API Smoke Test
+
+### What this does
+Runs a minimal request to confirm the OpenAI Python SDK is installed, the API key is set, and the model can be called successfully.
+
+### Key setup
+Set `OPENAI_API_KEY` (env var). Then run the script/notebook cell.
+
+### Code explanation
+- `client = OpenAI()`: creates an authenticated API client (reads `OPENAI_API_KEY`) used to send requests.
+- `client.chat.completions.create(...)`: sends a chat prompt to `gpt-4o-mini` and returns the model output in `response` (with `max_tokens=5` limiting output length).
+
+### Expected result
+A short reply such as `Working!`, which confirms the end-to-end request/response pipeline works.
