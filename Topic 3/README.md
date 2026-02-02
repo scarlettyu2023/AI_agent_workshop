@@ -81,3 +81,110 @@ Set `OPENAI_API_KEY` (env var). Then run the script/notebook cell.
 
 ### Expected result
 A short reply such as `Working!`, which confirms the end-to-end request/response pipeline works.
+
+## Task 3. Manual Tool Handling with Custom Calculator Agent
+
+This project demonstrates how tool calling works “under the hood” in an LLM-based agent by manually implementing the full loop: tool schema → model tool request → Python execution → result injection → final model response.
+
+Instead of relying on LangGraph’s built-in tools, I define and dispatch my own tools from scratch.
+
+## Features
+
+- Manual agent loop with OpenAI tool calling
+- Custom `get_weather` tool (simulated API)
+- Custom `calculator` tool with **geometric functions**
+- JSON-based argument parsing and result formatting
+- Support for **multiple tool calls in a single iteration**
+- Demonstration of strategies to force LLMs to use tools
+
+## Tools Implemented
+
+### 1. Weather Tool
+Returns simulated weather data for a given city.
+
+### 2. Calculator Tool
+Supports both arithmetic and geometric operations:
+
+**Arithmetic**
+- `add`
+- `subtract`
+- `multiply`
+- `divide`
+
+**Geometric**
+- `area_circle(r)`
+- `circumference_circle(r)`
+- `area_rectangle(width, height)`
+- `hypotenuse(a, b)`
+
+All inputs are parsed using `json.loads`, and outputs are returned as JSON using `json.dumps`.
+
+---
+
+## Example System Output
+
+### Test 1 — Single Tool Call
+
+User: What's the weather like in San Francisco?
+--- Iteration 1 ---
+LLM wants to call 1 tool(s)
+Tool: get_weather
+Args: {'location': 'San Francisco'}
+Result: Sunny, 72°F
+--- Iteration 2 ---
+Assistant: The weather in San Francisco is sunny with a temperature of 72°F.
+
+### Test 2 — No Tool Call
+User: Say hello!
+--- Iteration 1 ---
+Assistant: Hello! How can I assist you today?
+
+### Test 3 — Multiple Tool Calls
+User: What's the weather in New York and London?
+--- Iteration 1 ---
+LLM wants to call 2 tool(s)
+Tool: get_weather
+Args: {'location': 'New York'}
+Result: Cloudy, 55°F
+Tool: get_weather
+Args: {'location': 'London'}
+Result: Rainy, 48°F
+--- Iteration 2 ---
+Assistant:
+New York: Cloudy, 55°F
+London: Rainy, 48°F
+
+### Calculator Example (Geometric)
+User: Use the calculator to find the area of a circle with radius 3
+--- Iteration 1 ---
+LLM wants to call 1 tool(s)
+Tool: calculator
+Args: {'operation': 'area_circle', 'operands': [3]}
+Result: {"result": 28.274333882308138}
+--- Iteration 2 ---
+Assistant: The area of a circle with radius 3 is approximately 28.27.
+
+---
+
+## Forcing the Model to Use Tools
+
+Some smaller models (e.g., `gpt-4.1-mini`) attempt to perform calculations internally instead of calling the calculator tool.
+
+### Strategies Tested
+
+### 1. System Prompt Enforcement
+Add a strict rule:
+> "All mathematical operations must use the calculator tool. Do not compute results yourself."
+
+### 2. Forced Tool Selection
+Change:
+```python
+tool_choice="auto"
+To:
+tool_choice={"type": "function", "function": {"name": "calculator"}}
+This guarantees the model always routes through the calculator.
+3. Tool-Oriented Query Framing
+Rephrase prompts to:
+"Use the calculator tool to compute: ..."
+This significantly increases tool call reliability.
+
