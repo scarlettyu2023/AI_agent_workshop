@@ -164,8 +164,6 @@ Result: {"result": 28.274333882308138}
 --- Iteration 2 ---
 Assistant: The area of a circle with radius 3 is approximately 28.27.
 
----
-
 ## Forcing the Model to Use Tools
 
 Some smaller models (e.g., `gpt-4.1-mini`) attempt to perform calculations internally instead of calling the calculator tool.
@@ -187,4 +185,27 @@ This guarantees the model always routes through the calculator.
 Rephrase prompts to:
 "Use the calculator tool to compute: ..."
 This significantly increases tool call reliability.
+```
+
+
+## Task 4. Tool Calling Experiments (LangGraph)
+
+I ran the LangGraph tool-handling sample locally and extended it with three custom tools:
+1) `calculator` (arithmetic + geometry + trig; returns JSON),
+2) `count_letter` (counts occurrences of a letter in text; returns JSON),
+3) `text_metrics` (custom tool: basic text stats; returns JSON).
+
+For cleaner style, I replaced tool execution `if/else` dispatch with a `tool_map` lookup:
+- `tools = [...]`
+- `tool_map = {t.name: t for t in tools}`
+- dispatch via `tool_map[function_name].invoke(function_args)`.
+
+### Multi-tool in one turn
+The query “Are there more i’s than s’s in ‘Mississippi riverboats’?” typically triggers two `count_letter` tool calls in a single model turn.
+
+### Sequential chaining across iterations
+The query “What is the sin of the difference between the number of i’s and s’s in ‘Mississippi riverboats’?” triggers two letter-count calls first, then uses the calculator (`subtract`, then `sin`) in a later outer-loop iteration.
+
+### All tools
+I used a combined query that required weather lookup, letter counting, text metrics, and calculator geometry/trig in one workflow. Terminal traces are included in my portfolio.
 
