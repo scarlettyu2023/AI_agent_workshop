@@ -201,75 +201,133 @@ Without history, it would guess or claim it cannot know.
 
 This confirms the program is now maintaining multi-turn context through the Message API.
 
-## Part 6 — Shared Chat History Across Human + Llama + Qwen (Role-Collapsing)
+## Part 6 — Integrating Chat History with Llama/Qwen Switching (3 Speakers, 4 Roles)
 
-A standard chat history only supports roles like `system`, `user`, `assistant`, and `tool`, but our interaction has **three speakers**: Human, Llama, and Qwen. To handle this, I kept a single shared history while **encoding speaker names inside message content**.
+This agent maintains a single shared transcript while allowing switching between two LLMs (Llama and Qwen). The challenge is that the chat message API only supports roles: `system`, `user`/`human`, `assistant`/`ai`, and `tool`, but our dialog has three “speakers” (Human, Llama, Qwen).
 
-### Core Idea: Use `user` for Everyone (and prefix names)
-We store every utterance in `messages` as a `{role, content}` item, where `content` is prefixed with the speaker name:
+### Role-collapsing strategy (speaker name in content)
+To represent 3 speakers using a 4-role API, the implementation stores the conversation as a transcript where each line is a `user` message but the `content` includes a speaker prefix:
 
 - `Human: ...`
 - `Llama: ...`
 - `Qwen: ...`
 
-This makes it possible to pass a coherent transcript to either LLM without needing extra roles.
+When calling either model, we pass:
+1) A model-specific `system` message explaining the participants and the transcript format.
+2) The transcript messages as `user` role entries with speaker tags in the text.
 
-### System Prompts (One Per LLM)
-Each LLM gets its own system prompt describing participants and how to interpret the transcript.
+This matches the pattern from the prompt, e.g. Qwen receives prior context like:
+- `Human: ...`
+- `Llama: ...`
 
-Example for Llama:
-- “You are Llama. Participants are Human, Llama, Qwen.”
-- “The transcript prefixes each line with `Human:`, `Llama:`, or `Qwen:`.”
-- “When you respond, start your content with `Llama:`.”
+and Llama similarly receives:
+- `Human: ...`
+- `Qwen: ...`
+- `Human: ...`
 
-Example for Qwen:
-- Same structure, but:
-- “You are Qwen…”
-- “When you respond, start your content with `Qwen:`.”
+### Model-specific system prompts
+Each model receives a different system prompt stating:
+- who the participants are (Human, Llama, Qwen),
+- that each turn in the transcript is prefixed with the speaker name,
+- and that the model must respond with its own prefix (either `Llama:` or `Qwen:`).
 
-### Building the Model-Specific History
-On each turn, we route based on prefix (Part 4):
+### Switching (routing) policy
+Routing is controlled by a prefix rule:
+- If input begins with `Hey Qwen,` → route to Qwen
+- If input begins with `Hey Llama,` → route to Llama
+- Otherwise → default to Llama
 
-- If user input starts with `Hey Qwen`, call Qwen
-- Else call Llama
+This makes the control flow explicit and keeps switching behavior outside the LLM.
 
-When calling a model, we construct `messages_for_model` like:
+### Recorded conversations (evidence)
+Below are excerpts demonstrating history + switching:
 
-1) `[{role: "system", content: <model_specific_system_prompt>}, ...]`
-2) Then the shared transcript items, each stored as a `user` message:
-   - `{role: "user", content: "Human: ..."}`
-   - `{role: "user", content: "Llama: ..."}`
-   - `{role: "user", content: "Qwen: ..."}`
-3) Finally, we append the current human input as:
-   - `{role: "user", content: "Human: <raw input>"}`
-   - (If the raw input begins with `Hey Qwen`, we keep it in the text; the prefix is also what triggered the route.)
-
-This matches the “role-collapsing” pattern shown in the prompt: the *role* is `user`, while the *speaker identity* is inside the content.
-
-### Updating Shared History After Each Step
-After the chosen model responds:
-- Append `{role: "user", content: "<ModelName>: <model_text>"}` to the shared transcript
-- (Optionally, normalize so the model output always begins with `Llama:` or `Qwen:` as required by the system prompt.)
-
-### Interesting Conversation Logs (Recorded Examples)
-
-Example A (Llama → Qwen disagreement):
+1) Human asks Llama:
 - Human: What is the best ice cream flavor?
-- Llama: 
-- Human: Hey Qwen, what do you think?
-- Qwen: 
-- Human: I agree.
-- Llama: 
+- Llama: ... chocolate chip cookie dough ...
 
-Example B (Switching speakers across turns):
-- Human: Give me a 2-sentence summary of Hamlet.
-- Llama: Hamlet is a tragedy about a prince who seeks revenge after his father is murdered. His hesitation and political intrigue lead to multiple deaths.
-- Human: Hey Qwen, rewrite it as a tweet.
-- Qwen: “Hamlet: ghost dad says ‘avenge me,’ prince overthinks, drama escalates, everyone’s doomed. 🗡️👻 #Shakespeare”
-- Human: Make it more formal.
-- Llama: Hamlet is a tragedy in which a Danish prince confronts betrayal and moral uncertainty while pursuing vengeance. His deliberation amid court corruption culminates in widespread catastrophe.
+2) Human switches to Qwen:
+- Human: Hey Qwen, what do you think?
+- Qwen: ... chocolate chip cookie dough ...
+
+3) Prefix routing is strict:
+- Human: Hi Qwen, as a llm, do you like llama?
+Because this does not start with `Hey Qwen`, it defaults to Llama. This shows the router is deterministic but brittle to trigger phrasing.
+
+4) Small-model identity confusion can occur:
+- Qwen: “As a llama, I believe that llamas are kind...”
+This illustrates that smaller LLMs can sometimes drift in speaker identity even with transcript tagging, motivating stronger system prompts and stricter output normalization.
+
+The final dialog also demonstrates multi-turn context being preserved across speaker switches (e.g., Llama commenting on what Qwen said, and continuing the same topic).
+
+## Part 7 — Checkpointing and Crash Recovery
+
+LangGraph provides built-in **checkpointing** that allows an agent to recover from crashes without losing progress. Instead of storing conversation state only in memory, the graph persists its state to durable storage after each step. If the process is interrupted, the agent can restart from the last checkpoint.
+
+### Implementation
+
+A persistent SQLite checkpointer was added to the graph:
+
+```python
+from langgraph.checkpoint.sqlite import SqliteSaver
+
+checkpointer = SqliteSaver.from_conn_string("checkpoints.db")
+graph = builder.compile(checkpointer=checkpointer)
+```
+
+Each conversation uses a stable `thread_id` so that all checkpoints belong to the same conversation timeline:
+
+```python
+config = {"configurable": {"thread_id": "conversation-001"}}
+```
+
+As long as `checkpoints.db` and the `thread_id` remain unchanged, the agent will resume from the saved state.
+
+---
+
+### Crash Recovery Test
+
+The following experiment was performed:
+
+1. Start the agent and begin a conversation.
+2. Enter several messages so that chat history is created.
+3. Kill the program during or after a conversation turn.
+4. Restart the program **without deleting `checkpoints.db` or `.thread_id`**.
+5. Continue the conversation.
+
+---
+
+### Observed Output (Evidence)
+
+After restarting, the agent resumed with full memory:
+
+* The agent still remembered the user’s name (“Scarlett Yu”).
+* The agent remembered the previously mentioned course (“CS6501”).
+* The conversation continued seamlessly with no reset.
+
+Example excerpt:
+
+```
+[thread_id=4a4260f5-12d5-4d47-b59c-3133d44859f1]
+Checkpoint DB: checkpoints.db
+
+> what is my name?
+Llama: nice to meet you again, Scarlett Yu! Your name is Scarlett Yu.
+
+> which class i am studying?
+Llama: ... you mentioned earlier that you were studying CS6501 ...
+```
+
+This confirms that the conversation state was restored from the checkpoint database rather than memory.
+
+---
 
 ### What This Demonstrates
-- A single shared “transcript” can support multi-LLM conversation even with limited roles.
-- Routing decides *who speaks next*, while the transcript preserves *who said what*.
-- Model-specific system prompts prevent identity confusion and enforce consistent speaker tagging.
+
+* Checkpoints persist graph state to durable storage.
+* The agent can recover after crash or forced termination.
+* Conversation history is preserved across restarts.
+* LangGraph enables fault-tolerant, long-running agent execution.
+
+
+
