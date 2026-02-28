@@ -98,22 +98,6 @@ If the program runs slowly:
 
 ---
 
-## Running in Colab
-
-1. Runtime → Change runtime type → T4 GPU
-2. Restart runtime
-3. Run notebook from top
-4. Upload image and start chatting
-
-To verify GPU:
-
-```python
-import torch
-print(torch.cuda.is_available())
-print(torch.cuda.get_device_name(0))
-```
-
----
 
 ## Conclusion
 
