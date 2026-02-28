@@ -1,4 +1,60 @@
-# Vision-Language LangGraph Chat Agent
+# CS6501 – Topic 6: Vision-Language Models
+
+---
+
+## Table of Contents
+
+* [Exercise 1 – Vision-Language LangGraph Chat Agent](#exercise-1--vision-language-langgraph-chat-agent)
+* [Exercise 2 – Video Surveillance Agent](#exercise-2--video-surveillance-agent)
+* [Directory Structure](#directory-structure)
+* [System Requirements](#system-requirements)
+* [Setup Instructions](#setup-instructions)
+* [Running Exercise 2](#running-exercise-2)
+* [Logs](#logs)
+* [Conclusion](#conclusion)
+
+---
+
+## Directory Structure
+
+```
+topic6/
+│
+├── exercise1_langgraph_chat.py
+├── exercise2_surveillance.py
+├── surveillance.mp4
+├── frames_out/
+├── results.json
+│
+└── submission/
+    ├── README.md
+    └── logs/
+```
+
+---
+
+## System Requirements
+
+* macOS or Linux
+* Python 3.9+
+* Ollama installed locally (for Exercise 2)
+* LLaVA model pulled via Ollama
+* Python packages:
+
+  * opencv-python
+  * requests
+  * tqdm
+  * torch
+  * transformers
+  * langgraph
+  * gradio
+
+---
+
+
+---
+
+# Exercise 1 – Vision-Language LangGraph Chat Agent
 
 ## Overview
 
@@ -53,12 +109,6 @@ class AgentState(TypedDict):
     image: Optional[Image.Image]
 ```
 
-This ensures:
-
-* Clean separation of logic
-* Explicit context passing
-* No hidden global state
-
 Each user turn executes:
 
 ```
@@ -90,22 +140,66 @@ To improve inference speed:
 * `max_new_tokens` is limited
 * GPU is used when available
 
-If the program runs slowly:
+---
 
-* Switch Colab runtime to GPU (T4 recommended)
-* Reduce image resolution
-* Lower generation token count
+# Exercise 2 – Video Surveillance Agent
+
+## Overview
+
+This project implements a simple video surveillance agent using a Vision-Language Model (LLaVA via Ollama).
+
+The system:
+
+1. Extracts frames from a video at fixed time intervals.
+2. Uses a Vision-Language Model (LLaVA) to determine whether a person is visible in each frame.
+3. Computes approximate time intervals during which a person is present.
+4. Saves terminal session outputs as required by the assignment.
+
+
+## Setup Instructions
+
+### Install Ollama (Exercise 2)
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
+```bash
+ollama pull llava
+```
 
 ---
 
+### Install Python Dependencies
+
+```bash
+python -m pip install opencv-python requests tqdm torch transformers langgraph gradio
+```
+
+---
+
+## Running Exercise 2
+
+```bash
+python topic6/exercise2_surveillance.py --video surveillance.mp4 --every 2
+```
+
+---
+
+## Logs
+
+All terminal sessions were saved using:
+
+```bash
+command 2>&1 | tee submission/logs/filename.txt
+```
+
+---
 
 ## Conclusion
 
-This project demonstrates:
+Exercise 1 demonstrates structured multi-turn multimodal interaction using LangGraph and a HuggingFace Vision-Language Model.
 
-* Proper LangGraph-based agent structure
-* Correct multimodal prompt construction
-* Context-aware multi-turn conversation
-* Efficient deployment in Colab
+Exercise 2 demonstrates how a Vision-Language Model can be integrated into a simple surveillance pipeline to detect human presence over time.
 
-The system satisfies the requirements of Exercise 1.
+Together, these exercises showcase multimodal reasoning, structured agent design, and practical deployment of vision-language systems.
