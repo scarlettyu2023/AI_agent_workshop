@@ -1,0 +1,16 @@
+phrasing_a,phrasing_b,overlap_count,jaccard,overlap_ids
+formal,casual,4,0.6666666666666666,Ford-Model-T-Man-1919-ocr.pdf::chunk236; Ford-Model-T-Man-1919-ocr.pdf::chunk49; ModelT-01-10-ocr.pdf::chunk49; ModelT-41-50-ocr.pdf::chunk12
+formal,extra,4,0.6666666666666666,Ford-Model-T-Man-1919-ocr.pdf::chunk236; Ford-Model-T-Man-1919-ocr.pdf::chunk49; ModelT-01-10-ocr.pdf::chunk49; ModelT-41-50-ocr.pdf::chunk12
+casual,extra,4,0.6666666666666666,Ford-Model-T-Man-1919-ocr.pdf::chunk236; Ford-Model-T-Man-1919-ocr.pdf::chunk49; ModelT-01-10-ocr.pdf::chunk49; ModelT-41-50-ocr.pdf::chunk12
+formal,keywords,3,0.42857142857142855,Ford-Model-T-Man-1919-ocr.pdf::chunk236; ModelT-01-10-ocr.pdf::chunk49; ModelT-41-50-ocr.pdf::chunk12
+casual,keywords,3,0.42857142857142855,Ford-Model-T-Man-1919-ocr.pdf::chunk236; ModelT-01-10-ocr.pdf::chunk49; ModelT-41-50-ocr.pdf::chunk12
+keywords,indirect,3,0.42857142857142855,Ford-Model-T-Man-1919.txt::chunk52; ModelT-01-10-ocr.pdf::chunk49; ModelT-01-10.txt::chunk52
+keywords,extra,3,0.42857142857142855,Ford-Model-T-Man-1919-ocr.pdf::chunk236; ModelT-01-10-ocr.pdf::chunk49; ModelT-41-50-ocr.pdf::chunk12
+casual,indirect,2,0.25,ModelT-01-10-ocr.pdf::chunk49; ModelT-01-10-ocr.pdf::chunk50
+formal,indirect,1,0.1111111111111111,ModelT-01-10-ocr.pdf::chunk49
+indirect,extra,1,0.1111111111111111,ModelT-01-10-ocr.pdf::chunk49
+formal,question_form,0,0.0,
+casual,question_form,0,0.0,
+keywords,question_form,0,0.0,
+question_form,indirect,0,0.0,
+question_form,extra,0,0.0,

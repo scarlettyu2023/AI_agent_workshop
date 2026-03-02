@@ -1,0 +1,29 @@
+corpus,question,gpt4o_mini_answer
+MODEL_T,How do I adjust the carburetor on a Model T?,"To adjust the carburetor on a Model T Ford, follow these steps:
+
+1. **Locate the Adjustments**: The Model T carburetor has a mixture adjustment screw and a throttle adjustment.
+
+2. **Start the Engine**: Ensure the engine is warm for accurate adjustments.
+
+3. **Adjust the Mixture**: Turn the mixture adjustment screw (located on the side of the carburetor) clockwise to lean the mixture and counterclockwise to enrich it. Adjust until the engine runs smoothly without stalling.
+
+4. **Throttle Adjustment**: Adjust the throttle lever to set the desired engine speed. Ensure it responds well without hesitation.
+
+5. **Test Drive**: Take the car for a short drive to ensure it runs well under load, making further adjustments as necessary.
+
+Always refer to the owner's manual for specific settings and recommendations."
+MODEL_T,What is the correct spark plug gap for a Model T Ford?,The correct spark plug gap for a Model T Ford is typically between 0.025 to 0.030 inches (0.635 to 0.762 mm).
+MODEL_T,How do I fix a slipping transmission band?,"To fix a slipping transmission band, you can follow these steps:
+
+1. **Check Fluid Level**: Ensure the transmission fluid is at the correct level and in good condition. Low or dirty fluid can cause slipping.
+
+2. **Adjust the Band**: If your transmission has an adjustable band, locate the adjustment screw and follow the manufacturer's specifications to adjust it.
+
+3. **Replace the Band**: If the band is worn or damaged, it may need to be replaced. This typically requires disassembling the transmission.
+
+4. **Inspect for Other Issues**: Check for other potential problems, such as worn clutches or solenoids, which may also cause slipping.
+
+5. **Consult a Professional**: If you're unsure or the problem persists, it's best to consult a professional mechanic for a thorough diagnosis and repair.
+
+Always refer to your vehicle's service manual for specific instructions related to your transmission type."
+MODEL_T,What oil should I use in a Model T engine?,"For a Model T engine, it is recommended to use a non-detergent motor oil with a viscosity of 30 weight (SAE 30) or 40 weight (SAE 40), especially in warmer temperatures. Some owners also use straight mineral oil or a specific oil designed for vintage engines. Always check the owner's manual for specific recommendations."
