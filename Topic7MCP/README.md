@@ -12,6 +12,8 @@ This directory contains exercises for Topic 7, covering Model Context Protocol (
 |------|-------------|
 | [exercise_a.py](#exercise-a) | Discover Asta MCP tools via `tools/list` |
 | [exercise_b.py](#exercise-b) | Direct Asta tool calls — three focused drills |
+| [exercise_c.py](#exercise-c) | Asta-powered research chatbot with GPT-4o mini |
+| [exercise_d.py](#exercise-d) | Citation network explorer agent *(coming soon)* |
 
 ---
 
@@ -108,6 +110,40 @@ reasoning with actionable outputs..."
 
 ---
 
+## Exercise C
+
+**File:** `exercise_c.py`
+
+**Goal:** Build a research chatbot that fetches Asta tool schemas dynamically at startup and uses GPT-4o mini to decide which tools to call, executing them via MCP and looping until a final answer is produced.
+
+**Architecture:**
+1. At startup, call `tools/list` and convert all 8 Asta schemas to OpenAI function-calling format (renaming `inputSchema` -> `parameters`)
+2. Pass the tools to GPT-4o mini with `tool_choice="auto"`
+3. When the model emits `tool_calls`, extract name and arguments, POST a `tools/call` to Asta, and append the result as a `tool` message
+4. Loop until the model returns a plain text response with no tool calls
+5. Maintain full conversation history across turns for multi-turn context
+
+**Key design decisions:**
+- Tool results are truncated to ~3000 characters before being fed back to the model to keep token costs manageable
+- Errors from MCP (tool errors, network failures) are returned as strings so the model can acknowledge them gracefully rather than crashing
+- All tool calls are printed as `[tool call] name(args)` so the model's decisions are observable
+
+**Sample session:**
+
+Query: *"Who wrote Attention is All You Need and what else have they published?"*
+
+The model automatically chained 9 tool calls: one `search_papers_by_relevance` to find the paper and extract author IDs, then one `get_author_papers` call per author. No tool-routing code was written -- the model read the schemas and decided the sequence on its own.
+
+Query: *"Tell me about the ReAct paper and its impact"*
+
+The model called four different tools unprompted: `search_paper_by_title`, `search_papers_by_relevance` (twice with different keywords), and `snippet_search` -- demonstrating that it can select from the full tool palette based on what each query needs.
+
+**Observed limitation:** When asked about BERT citations, the model searched for "BERT" by keyword and retrieved a Sentence-BERT paper ID rather than the original BERT paper (`ARXIV:1810.04805`). The model guessed a paper ID from search results rather than knowing the canonical ID. This could be fixed by including known paper IDs in the system prompt.
+
+**What changed vs Exercise B?** In Exercise B, every tool call required writing explicit code to choose the tool, pass the right parameters, and parse the response. In Exercise C, zero tool-specific code was written after startup -- the model read the MCP schemas and handled all routing decisions. Adding a new Asta tool tomorrow would require no code changes.
+
+---
+
 ## Key Discoveries
 
 **SSE transport:** The Asta MCP server uses Server-Sent Events (`text/event-stream`) rather than plain JSON responses. Clients must include `Accept: application/json, text/event-stream` in request headers and parse the `data:` line from the response body.
@@ -116,10 +152,12 @@ reasoning with actionable outputs..."
 
 **`get_references` is absent:** The lesson plan references a `get_references` tool that does not exist in Asta's current tool list. The available tools are `get_paper`, `get_paper_batch`, `get_citations`, `search_authors_by_name`, `get_author_papers`, `search_papers_by_relevance`, `search_paper_by_title`, and `snippet_search`.
 
-**MCP schema = OpenAI tool schema:** The `inputSchema` field in each MCP tool definition is valid JSON Schema, identical in structure to what OpenAI's function-calling API expects under `parameters`. This makes converting MCP tools to OpenAI format a direct one-to-one mapping (Exercise C).
+**MCP schema = OpenAI tool schema:** The `inputSchema` field in each MCP tool definition is valid JSON Schema, identical in structure to what OpenAI's function-calling API expects under `parameters`. This makes converting MCP tools to OpenAI format a direct one-to-one mapping -- just renaming one key.
 
 **Response structure varies by tool:** `get_citations` wraps the result under a `"citingPaper"` key; `snippet_search` returns a list of objects with `{ score, paper, snippet: { text } }` structure; `search_papers_by_relevance` returns a flat paper dict directly. Robust parsing requires handling each shape explicitly.
 
+**LLM tool selection is emergent:** The model selects and sequences tools based solely on reading their names and descriptions -- no explicit routing logic is needed. For the "Attention is All You Need" query, it correctly inferred that it needed to find author IDs first before calling `get_author_papers`, and executed 9 sequential calls without any orchestration code.
+
 ---
 
-*More exercises (C, D, and A2A) to be added as completed.*
+*More exercises (D and A2A) to be added as completed.*
