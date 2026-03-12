@@ -233,6 +233,31 @@ previously been studied as separate topics...
 
 ---
 
+## Closing Discussion
+
+**1. What does dynamic schema automation buy you? What does it cost?**
+
+In Exercise B, every tool call required knowing the parameter names in advance — and we got them wrong (`query` vs `keyword`), causing failures until we ran `tools/list` manually to discover the real names. In Exercise C, that problem disappeared entirely: the chatbot fetched schemas at startup and the model read them directly, so it used `keyword` correctly without any hardcoding. The automation buys zero-maintenance tool integration — if Asta adds a new tool tomorrow, Exercise C requires no code changes.
+
+The costs are real though. SSE transport added an unexpected parsing layer that plain `resp.json()` couldn't handle. The `isError` field in responses is a new failure mode that doesn't exist in standard HTTP — a successful 200 response can still contain a tool-level error that only appears inside the JSON body. And because the schema is fetched at runtime, a schema change on the server can silently break a running agent in ways that are harder to debug than a hardcoded parameter mismatch.
+
+**2. How did you decide what to include in the context window vs. discard?**
+
+Tool results were truncated to ~3000 characters before being passed back to the model. In practice, the Asta tools return one paper at a time, so truncation rarely triggered — but when it did (e.g. long abstracts), the model handled it gracefully. Passing the full raw JSON (with `paperId`, `externalIds`, nested author objects) produced verbose but accurate responses. The model ignored irrelevant fields naturally. A more token-efficient approach would be to extract only `title`, `year`, `authors`, and `abstract` before returning — this would reduce cost and likely improve response focus without losing answer quality, since the model never used raw IDs in its prose responses anyway.
+
+**3. What would it take to let the LLM decide the tool-calling order in Exercise D? What could go wrong?**
+
+Exercise D's pipeline has hard data dependencies: you cannot call `get_author_papers` until you have `authorId` values, which only come from `get_paper`. Letting the LLM decide the order would require either (a) giving it the full pipeline goal upfront and trusting it to infer the dependency graph, or (b) running it in a ReAct-style loop where it calls one tool, observes the result, then decides the next call. Option (b) is essentially Exercise C applied to a research task.
+
+What could go wrong: the model might skip steps (e.g. jump straight to `get_author_papers` with a guessed author ID), call tools redundantly, or get stuck in a loop retrying a failing call. In Exercise C we already saw this — when asked about BERT citations, the model used a wrong paper ID from a keyword search rather than the canonical `ARXIV:1810.04805`. In a fully autonomous pipeline, that kind of ID confusion cascades silently across all downstream steps.
+
+**4. What would you want a mature MCP ecosystem to offer?**
+
+Several gaps became obvious during these exercises. First, **pagination**: every Asta tool returns one result per call regardless of the `limit` parameter, forcing workarounds like quarterly date windows and keyword variation loops. A mature MCP standard should define a cursor-based pagination protocol so clients can request pages of results reliably. Second, **tool versioning**: there is no way to know if a tool's schema changed between runs, which means cached schemas can silently become stale. Third, **a `get_references` tool**: the lesson plan assumed it existed, it doesn't, and there is no clean substitute — `snippet_search` and keyword search are poor proxies for a paper's actual reference list. Finally, **standardized error codes**: right now `isError: true` carries a plain English string. A mature ecosystem would define structured error types (rate limit, not found, invalid ID) so agents can handle them programmatically rather than passing error strings back to the LLM.
+
+
+---
+
 ## Key Discoveries
 
 **SSE transport:** The Asta MCP server uses Server-Sent Events (`text/event-stream`) rather than plain JSON responses. Clients must include `Accept: application/json, text/event-stream` in request headers and parse the `data:` line from the response body.
