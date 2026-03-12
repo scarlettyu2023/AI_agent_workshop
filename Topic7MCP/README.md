@@ -13,7 +13,7 @@ This directory contains exercises for Topic 7, covering Model Context Protocol (
 | [exercise_a.py](#exercise-a) | Discover Asta MCP tools via `tools/list` |
 | [exercise_b.py](#exercise-b) | Direct Asta tool calls — three focused drills |
 | [exercise_c.py](#exercise-c) | Asta-powered research chatbot with GPT-4o mini |
-| [exercise_d.py](#exercise-d) | Citation network explorer agent *(coming soon)* |
+| [exercise_d.py](#exercise-d) | Citation network explorer agent — autonomous MCP pipeline |
 
 ---
 
@@ -144,6 +144,95 @@ The model called four different tools unprompted: `search_paper_by_title`, `sear
 
 ---
 
+## Exercise D
+
+**File:** `exercise_d.py`
+
+**Goal:** Build an autonomous agent that takes a seed paper ID, collects a full citation neighborhood via direct MCP calls (no LLM tool routing), and uses GPT-4o mini solely to write a structured markdown report.
+
+**How to run:**
+```bash
+python exercise_d.py ARXIV:2210.03629
+```
+
+To save the report to a file, redirect stdout:
+```bash
+python exercise_d.py ARXIV:2210.03629 > react_report.md
+```
+
+Other paper IDs to try:
+```bash
+python exercise_d.py ARXIV:1706.03762   # Attention Is All You Need
+python exercise_d.py ARXIV:1810.04805   # BERT
+python exercise_d.py ARXIV:2201.11903   # Chain-of-Thought Prompting
+python exercise_d.py ARXIV:2005.14165   # GPT-3
+```
+
+**Architecture — 4 fixed data-collection steps, then 1 generation step:**
+
+| Step | MCP Tool(s) Used | What It Collects |
+|------|-----------------|------------------|
+| 1 | `get_paper` | Seed paper title, abstract, authors, citation count, fields of study |
+| 2 | `search_papers_by_relevance` + `snippet_search` + `get_paper` | 5 foundational related works (adapted from missing `get_references`) |
+| 3 | `get_citations` x6 | 5 recent citing papers via quarterly date windows (2022 onward) |
+| 4 | `get_author_papers` x N | Each seed paper author's most-cited other work |
+| 5 | GPT-4o mini | Writes the final markdown report from all collected data |
+
+**Key design decision:** The LLM has no role in deciding which tools to call or in what order — all MCP calls are hardcoded in sequence. The LLM only sees the final assembled data and writes prose. This is the opposite of Exercise C, where the LLM controlled all tool routing.
+
+**Adaptation for missing `get_references`:** Since Asta does not expose a `get_references` tool, Step 2 uses `search_papers_by_relevance` with the seed paper's title as a keyword to find related foundational works, then fills remaining slots using `snippet_search` results resolved to full metadata via `get_paper`.
+
+**Sample run — ReAct paper (`ARXIV:2210.03629`):**
+
+```
+[1/4] Fetching seed paper metadata: ARXIV:2210.03629
+[2/4] Finding foundational works (get_references unavailable -- using keyword search)
+  Found 1 foundational works
+[3/4] Fetching recent citing papers (2022 onward)
+  Found 5 recent citing papers
+[4/4] Fetching author profiles
+  Shunyu Yao: Referral Augmentation for Zero-Shot Information Retrieval
+  Jeffrey Zhao: An Efficient Algorithm for Thresholding Monte Carlo Tree Search
+  Dian Yu: Tree of Thoughts: Deliberate Problem Solving with Large Language Models
+  Nan Du: Learning to Select the Best Forecasting Tasks for Clinical Outcome Prediction
+  Izhak Shafran: An Efficient Algorithm for Thresholding Monte Carlo Tree Search
+  Karthik Narasimhan: Reflexion: language agents with verbal reinforcement learning
+  Yuan Cao: Catch Your Breath: Adaptive Computation for Self-Paced Sequence Production
+
+Generating markdown report with GPT-4o mini...
+```
+
+**Sample report output (stdout):**
+
+```markdown
+# ReAct: Synergizing Reasoning and Acting in Language Models — Citation Network Report
+
+## Summary
+The seed paper "ReAct" (2022) explores the synergy between reasoning (e.g. chain-of-thought
+prompting) and acting (e.g. action plan generation) in large language models, which had
+previously been studied as separate topics...
+
+## Foundational Works
+- **CodeReviewQA** (2025) - Examines LLM limitations in practical software engineering tasks...
+
+## Recent Developments
+- **Demonstrate-Search-Predict** (2022) by Khattab et al. - Integrates retrieval mechanisms
+  with language models, complementing the ReAct approach...
+- **Reflexion** (2023) by Shinn et al. - Uses verbal reinforcement learning to enable
+  language agents to learn from trial and error...
+
+## Author Profiles
+- **Karthik Narasimhan** - *Reflexion: language agents with verbal reinforcement learning*
+  (2023) - Directly extends the ReAct line of work on language agents...
+```
+
+**Observed limitation:** Step 2 (foundational works) only found 1 paper instead of 5, because `search_papers_by_relevance` returns one result per call and the keyword search for the seed paper title returns the seed paper itself or very recent work rather than older foundational papers. A better substitute for `get_references` would require iterating over known reference IDs, which Asta does not currently expose.
+
+**What changed vs Exercise C?** Exercise C let the LLM decide every tool call. Exercise D inverts this: all tool calls are deterministic and hardcoded, and the LLM is used only as a text generator at the end. This makes the agent more predictable and cheaper to run, but less flexible.
+
+
+---
+
 ## Key Discoveries
 
 **SSE transport:** The Asta MCP server uses Server-Sent Events (`text/event-stream`) rather than plain JSON responses. Clients must include `Accept: application/json, text/event-stream` in request headers and parse the `data:` line from the response body.
@@ -160,4 +249,4 @@ The model called four different tools unprompted: `search_paper_by_title`, `sear
 
 ---
 
-*More exercises (D and A2A) to be added as completed.*
+*A2A exercises to be added as completed.*
