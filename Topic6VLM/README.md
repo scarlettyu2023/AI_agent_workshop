@@ -92,18 +92,38 @@ python exercise2_surveillance.py --video myvideo.mp4
 
 ### Sample output
 
+Run on `surveillance.mp4` (~3 min video, MacBook, default 2-second interval):
+
 ```
-Extracted 62 frames into frames_out
-Running LLaVA: 100%|████████████| 62/62
+Extracting frames: 100%|█████████████| 9554/9554 [00:10<00:00, 927.48it/s]
+Extracted 96 frames into frames_out
+Running LLaVA: 100%|████████████████████| 96/96 [09:27<00:00, 5.91s/it]
 Saved raw detections to results.json
 
 === Person present intervals (approx) ===
-Person present from ~14.0s to ~47.0s
-Person present from ~89.0s to ~112.0s
+Person present from ~16.0s to ~28.0s
+Person present from ~34.0s to ~38.0s
+Person present from ~40.0s to ~44.0s
+Person present from ~46.0s to ~48.0s
+Person present from ~50.0s to ~62.0s
+Person present from ~70.0s to ~76.0s
+Person present from ~80.0s to ~84.0s
+Person present from ~90.0s to ~92.0s
+Person present from ~96.0s to ~106.0s
+Person present from ~108.0s to ~112.0s
+Person present from ~118.0s to ~120.0s
+Person present from ~126.0s to ~128.0s
+Person present from ~132.0s to ~136.0s
+Person present from ~140.0s to ~156.0s
+Person present from ~164.0s to ~166.0s
+Person present from ~168.0s to ~176.0s
+Person present from ~180.0s to ~182.0s
+Person present from ~186.0s to ~190.0s
 ```
 
 ### Notes
 
-- Processing speed depends on hardware; expect ~8–10 seconds per frame on a MacBook without a discrete GPU
+- Processing speed on a MacBook (no discrete GPU): ~5.9s per frame, ~9.5 minutes total for 96 frames
+- Detections can be fragmented — LLaVA may miss frames where the person is partially visible, moving fast, or at an angle, creating short gaps between intervals
 - Reduce `--every` for coarser (faster) analysis; increase it for finer detection
 - Raw detections are saved to `results.json` so you can re-analyze without re-running inference
