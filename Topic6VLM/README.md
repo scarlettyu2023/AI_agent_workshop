@@ -1,205 +1,109 @@
-# CS6501 – Topic 6: Vision-Language Models
+# Topic6VLM
 
----
+Vision-Language Model (VLM) exercises using Ollama + LLaVA.
 
 ## Table of Contents
 
-* [Exercise 1 – Vision-Language LangGraph Chat Agent](#exercise-1--vision-language-langgraph-chat-agent)
-* [Exercise 2 – Video Surveillance Agent](#exercise-2--video-surveillance-agent)
-* [Directory Structure](#directory-structure)
-* [System Requirements](#system-requirements)
-* [Setup Instructions](#setup-instructions)
-* [Running Exercise 2](#running-exercise-2)
-* [Logs](#logs)
-* [Conclusion](#conclusion)
+| File | Description |
+|------|-------------|
+| [exercise1.py](#exercise-1-vision-language-langgraph-chat-agent) | Multi-turn chat agent for image Q&A |
+| [exercise2_surveillance.py](#exercise-2-video-surveillance-agent) | Video surveillance agent using frame extraction |
 
 ---
 
-## Directory Structure
+## Exercise 1: Vision-Language LangGraph Chat Agent
+
+**File:** `exercise1.py`
+
+A multi-turn conversational agent that lets you upload an image and ask follow-up questions about it in a Gradio web interface. Built with LangGraph for state management and Ollama + LLaVA for vision-language inference.
+
+### How it works
+
+1. User uploads an image via the Gradio UI
+2. The image is resized (max 1024px) and base64-encoded for efficient inference
+3. Each user message is appended to a LangGraph `AgentState` containing the full conversation history
+4. The graph passes the history to LLaVA via Ollama — the image is attached only to the first message; subsequent turns are text-only but the model retains visual context
+5. The assistant reply is appended back to the state for the next turn
+
+### LangGraph graph structure
 
 ```
-topic6/
-│
-├── exercise1_langgraph_chat.py
-├── exercise2_surveillance.py
-├── surveillance.mp4
-├── frames_out/
-├── results.json
-│
-└── submission/
-    ├── README.md
-    └── logs/
+[llava] → [append_reply] → END
 ```
 
----
-
-## System Requirements
-
-* macOS or Linux
-* Python 3.9+
-* Ollama installed locally (for Exercise 2)
-* LLaVA model pulled via Ollama
-* Python packages:
-
-  * opencv-python
-  * requests
-  * tqdm
-  * torch
-  * transformers
-  * langgraph
-  * gradio
-
----
-
-
----
-
-# Exercise 1 – Vision-Language LangGraph Chat Agent
-
-## Overview
-
-This project implements a multi-turn vision-language chat agent using:
-
-* HuggingFace Vision-Language Model (TinyLLaVA / LLaVA)
-* LangGraph for structured state management
-* Gradio for interactive image + chat interface
-* PyTorch for model inference
-
-The agent allows a user to:
-
-1. Upload an image
-2. Ask questions about the image
-3. Continue a multi-turn conversation with preserved context
-
----
-
-## Features
-
-* Multi-turn image-based conversation
-* Structured state management via LangGraph
-* Explicit context tracking
-* Image resolution optimization for speed
-* GPU acceleration (when available)
-
----
-
-## Architecture
-
-### Model
-
-Default model: `bczhou/tiny-llava-v1-hf`
-
-The model receives:
-
-* A formatted prompt including `<image>` token
-* The uploaded image
-* Conversation history
-
----
-
-### LangGraph State Design
-
-The agent uses a typed state object:
-
-```python
-class AgentState(TypedDict):
-    messages: List[Dict[str, Any]]
-    user_input: str
-    assistant_output: str
-    image: Optional[Image.Image]
-```
-
-Each user turn executes:
-
-```
-START → call_vlm → END
-```
-
----
-
-### Prompt Formatting
-
-TinyLLaVA does not provide a chat template, so prompts are manually structured:
-
-```
-SYSTEM: You are a helpful vision-language assistant.
-USER: <image>
-<user question>
-ASSISTANT:
-```
-
-The `<image>` placeholder token is required for proper alignment of image features.
-
----
-
-### Performance Optimization
-
-To improve inference speed:
-
-* Images are resized if too large
-* `max_new_tokens` is limited
-* GPU is used when available
-
----
-
-# Exercise 2 – Video Surveillance Agent
-
-## Overview
-
-This project implements a simple video surveillance agent using a Vision-Language Model (LLaVA via Ollama).
-
-The system:
-
-1. Extracts frames from a video at fixed time intervals.
-2. Uses a Vision-Language Model (LLaVA) to determine whether a person is visible in each frame.
-3. Computes approximate time intervals during which a person is present.
-4. Saves terminal session outputs as required by the assignment.
-
-
-## Setup Instructions
-
-### Install Ollama (Exercise 2)
+### Dependencies
 
 ```bash
-curl -fsSL https://ollama.com/install.sh | sh
-```
-
-```bash
+pip install ollama langgraph langchain-core gradio pillow
 ollama pull llava
 ```
 
----
-
-### Install Python Dependencies
+### Usage
 
 ```bash
-python -m pip install opencv-python requests tqdm torch transformers langgraph gradio
+python exercise1.py
+# Open http://127.0.0.1:7860 in your browser
+# Upload an image, then type questions in the chat box
+# Press Ctrl+C in the terminal to stop the server
 ```
+
+### Sample interaction
+
+- **Image:** Three kittens on a wooden surface with green foliage background
+- **User:** "What do you see in this image?"
+- **LLaVA:** "The image shows three kittens: one is a solid white color, one has black and brown patches..."
+- **User:** "How old do they look like?"
+- **LLaVA:** "The cats in the image appear to be quite young, likely kittens..."
 
 ---
 
-## Running Exercise 2
+## Exercise 2: Video Surveillance Agent
+
+**File:** `exercise2_surveillance.py`
+
+A command-line agent that analyzes a video file for human presence by extracting frames every N seconds and querying LLaVA on each one. Reports the time intervals during which a person is visible.
+
+### How it works
+
+1. Frames are extracted from the video at a configurable interval (default: every 2 seconds) using OpenCV and saved as JPEG files
+2. Each frame is base64-encoded and sent to LLaVA via the Ollama REST API with a yes/no presence prompt
+3. Responses are parsed by a scoring-based `normalize_yes_no()` function that handles LLaVA's verbose outputs
+4. Consecutive detections are collapsed into time intervals (entry/exit times)
+5. Raw detections are saved to a JSON file for inspection
+
+### Dependencies
 
 ```bash
-python topic6/exercise2_surveillance.py --video surveillance.mp4 --every 2
+pip install opencv-python requests tqdm
+ollama pull llava
 ```
 
----
-
-## Logs
-
-All terminal sessions were saved using:
+### Usage
 
 ```bash
-command 2>&1 | tee submission/logs/filename.txt
+python exercise2_surveillance.py --video myvideo.mp4
+
+# Optional flags:
+#   --outdir   frames_out     Directory to save extracted frames (default: frames_out)
+#   --every    2.0            Seconds between sampled frames (default: 2.0)
+#   --model    llava          Ollama model name (default: llava)
+#   --save_json results.json  Where to save raw detection output (default: results.json)
 ```
 
----
+### Sample output
 
-## Conclusion
+```
+Extracted 62 frames into frames_out
+Running LLaVA: 100%|████████████| 62/62
+Saved raw detections to results.json
 
-Exercise 1 demonstrates structured multi-turn multimodal interaction using LangGraph and a HuggingFace Vision-Language Model.
+=== Person present intervals (approx) ===
+Person present from ~14.0s to ~47.0s
+Person present from ~89.0s to ~112.0s
+```
 
-Exercise 2 demonstrates how a Vision-Language Model can be integrated into a simple surveillance pipeline to detect human presence over time.
+### Notes
 
-Together, these exercises showcase multimodal reasoning, structured agent design, and practical deployment of vision-language systems.
+- Processing speed depends on hardware; expect ~8–10 seconds per frame on a MacBook without a discrete GPU
+- Reduce `--every` for coarser (faster) analysis; increase it for finer detection
+- Raw detections are saved to `results.json` so you can re-analyze without re-running inference
