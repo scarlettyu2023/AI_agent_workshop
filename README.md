@@ -73,12 +73,3 @@ python main.py
 ## Skills Demonstrated
 
 `Python` `LLM APIs` `Multi-agent systems` `RAG` `LangGraph` `HuggingFace` `Prompt engineering` `PDF parsing` `Conversational AI` `Agent memory`
-
----
-
-## Course Info
-
-- **Course:** CS 6501 Workshop on Building AI Agents
-- **Instructor:** Prof. Henry Kautz, University of Virginia
-- **Semester:** Spring 2026
-- **Repo also serves as:** Mid-term and final GitHub portfolio (20% of grade)
