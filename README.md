@@ -81,7 +81,7 @@ You:    I want to lose some weight
 Agent:  Got it. How old are you, and what's your
         current weight and height?
 
-You:    30, 50kg, 170cm
+You:    28, 60kg, 170cm
 
 Agent:  Any dietary restrictions or foods you dislike?
 
