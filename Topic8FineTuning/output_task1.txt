@@ -1,0 +1,101 @@
+Loading dataset...
+Train: 78377 examples  |  Test: 200 examples
+
+Creating Tinker training client...
+Model: meta-llama/Llama-3.2-1B  |  LoRA rank: 32
+
+Saving base weights to get sampling client...
+
+--- Evaluating Base model on 200 test questions ---
+  50/200 evaluated  (correct so far: 16)
+  100/200 evaluated  (correct so far: 44)
+  150/200 evaluated  (correct so far: 68)
+  200/200 evaluated  (correct so far: 91)
+Base accuracy: 45.50%  (91/200)
+
+Tokenizing 78377 training examples...
+Tokenization complete.
+
+=== Starting Fine-Tuning ===
+Epochs: 1  |  Batch size: 256  |  LR: 0.0005
+Batches per epoch: 307
+Epoch 1/1  batch 10/307  step 10  loss: 0.1280
+Epoch 1/1  batch 20/307  step 20  loss: 0.0835
+Epoch 1/1  batch 30/307  step 30  loss: 0.0629
+Epoch 1/1  batch 40/307  step 40  loss: 0.0490
+Epoch 1/1  batch 50/307  step 50  loss: 0.0533
+Epoch 1/1  batch 60/307  step 60  loss: 0.0486
+Epoch 1/1  batch 70/307  step 70  loss: 0.0387
+Epoch 1/1  batch 80/307  step 80  loss: 0.0432
+Epoch 1/1  batch 90/307  step 90  loss: 0.0584
+Epoch 1/1  batch 100/307  step 100  loss: 0.0481
+Epoch 1/1  batch 110/307  step 110  loss: 0.0470
+Epoch 1/1  batch 120/307  step 120  loss: 0.0386
+Epoch 1/1  batch 130/307  step 130  loss: 0.0398
+Epoch 1/1  batch 140/307  step 140  loss: 0.0317
+Epoch 1/1  batch 150/307  step 150  loss: 0.0333
+Epoch 1/1  batch 160/307  step 160  loss: 0.0437
+Epoch 1/1  batch 170/307  step 170  loss: 0.0332
+Epoch 1/1  batch 180/307  step 180  loss: 0.0494
+Epoch 1/1  batch 190/307  step 190  loss: 0.0451
+Epoch 1/1  batch 200/307  step 200  loss: 0.0335
+Epoch 1/1  batch 210/307  step 210  loss: 0.0281
+Epoch 1/1  batch 220/307  step 220  loss: 0.0378
+Epoch 1/1  batch 230/307  step 230  loss: 0.0304
+Epoch 1/1  batch 240/307  step 240  loss: 0.0381
+Epoch 1/1  batch 250/307  step 250  loss: 0.0265
+Epoch 1/1  batch 260/307  step 260  loss: 0.0317
+Epoch 1/1  batch 270/307  step 270  loss: 0.0365
+Epoch 1/1  batch 280/307  step 280  loss: 0.0262
+Epoch 1/1  batch 290/307  step 290  loss: 0.0317
+Epoch 1/1  batch 300/307  step 300  loss: 0.0366
+Epoch 1/1  batch 307/307  step 307  loss: 0.0291
+
+Training complete!
+
+Saving fine-tuned weights...
+
+--- Evaluating Fine-tuned model on 200 test questions ---
+  50/200 evaluated  (correct so far: 49)
+  100/200 evaluated  (correct so far: 95)
+  150/200 evaluated  (correct so far: 138)
+  200/200 evaluated  (correct so far: 183)
+Fine-tuned accuracy: 91.50%  (183/200)
+
+==================================================
+RESULTS SUMMARY
+==================================================
+Base model accuracy:        45.50%
+Fine-tuned model accuracy:  91.50%
+Improvement:                +46.00%
+
+==================================================
+NOVEL SCHEMA QUESTIONS (out-of-distribution)
+==================================================
+
+[Easy-1: employees WHERE]  ✓ CORRECT
+  Question:  What are the names of employees in the engineering department?
+  Expected:  SELECT name FROM employees WHERE department = 'engineering'
+  Generated: SELECT name FROM employees WHERE department = 'Engineering'
+
+[Easy-2: products COUNT]  ✗ WRONG
+  Question:  How many products cost more than 50 dollars?
+  Expected:  SELECT COUNT(*) FROM products WHERE price > 50
+  Generated: SELECT COUNT(*) FROM products WHERE price > 50 AND category = 'electronics' OR category = 'furniture'
+
+[Medium-1: students MAX]  ✗ WRONG
+  Question:  What is the highest score in the science class?
+  Expected:  SELECT MAX(score) FROM students WHERE class = 'science'
+  Generated: SELECT MAX(score) FROM students WHERE class = 'Science' AND name = 'John'
+
+[Medium-2: orders TOP-3]  ✗ WRONG
+  Question:  List the top 3 customers by total order amount.
+  Expected:  SELECT customer, SUM(amount) FROM orders GROUP BY customer ORDER BY SUM(amount) DESC LIMIT 3
+  Generated: SELECT customer FROM orders GROUP BY customer ORDER BY SUM(amount) DESC LIMIT 3
+
+[Hard-1: JOIN + GROUP BY]  ✓ CORRECT
+  Question:  How many students are enrolled in each department?
+  Expected:  SELECT c.department, COUNT(e.student_id) FROM courses c JOIN enrollments e ON c.id = e.course_id GROUP BY c.department
+  Generated: SELECT SUM(T1.student_id), SUM(T2.name), SUM(T2.department) FROM enrollments AS T1 JOIN courses AS T2 ON T1.course_id = T2.id WHERE T1.grade = 'A' OR T1.grade = 'B' OR T1.grade = 'C' GROUP BY T2.department
+
+Done! Save this output to a text file for your portfolio.
