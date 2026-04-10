@@ -1,5 +1,11 @@
 <div align="center">
 
+## Demo Video
+
+[![Meal & Health Agent Demo](https://img.youtube.com/vi/7bCjOfy4Owk/maxresdefault.jpg)](https://www.youtube.com/watch?v=7bCjOfy4Owk)
+
+---
+
 # 🥗 Meal & Health Agent
 
 **CS 6501 Final Project — Workshop on Building AI Agents · UVA · Spring 2026**
