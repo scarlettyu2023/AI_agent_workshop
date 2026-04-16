@@ -4,6 +4,8 @@
 
 [![Meal & Health Agent Demo](https://img.youtube.com/vi/7bCjOfy4Owk/maxresdefault.jpg)](https://www.youtube.com/watch?v=7bCjOfy4Owk)
 
+📄 [Read the full project report](./REPORT.md)
+
 ---
 
 # 🥗 Meal & Health Agent
